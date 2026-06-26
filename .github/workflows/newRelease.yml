@@ -21,35 +21,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Helm
-        uses: azure/setup-helm@v4
-
-      - name: Package chart
-        run: |
-          helm package ${{ env.CHART_PATH }}
-
-      - name: Checkout gh-pages
-        uses: actions/checkout@v4
         with:
-          ref: gh-pages
-          path: gh-pages
+          fetch-depth: 0
 
-      - name: Copy chart package
+      - name: Configure git
         run: |
-          cp *.tgz gh-pages/
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
-      - name: Generate index.yaml
-        run: |
-          helm repo index gh-pages \
-            --url https://cabs-tech.github.io/charts
-
-      - name: Commit and push
-        run: |
-          cd gh-pages
-          git config user.name github-actions
-          git config user.email github-actions@github.com
-
-          git add .
-          git commit -m "Publish chart" || exit 0
-          git push
+      - name: Run chart-releaser
+        uses: helm/chart-releaser-action@v1.6.0
+        with:
+          charts_dir: charts
+        env:
+          CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
