@@ -1,32 +1,46 @@
+name: package-helm-chart
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'charts/**'
+  
+permissions:
+  contents: read
+  packages: write
+
+env:
+  CHART_PATH: charts/example-app
+
 jobs:
   publish:
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        chart:
-          - example-app
-
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: azure/setup-helm@v4
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | \
+          helm registry login ghcr.io \
+            --username ${{ github.actor }} \
+            --password-stdin
 
       - name: Package chart
         run: |
-          helm package charts/${{ matrix.chart }}
+          helm package ${{ env.CHART_PATH }}
 
-      - name: Push chart
+      - name: Push chart to GHCR
         run: |
-          VERSION=$(yq '.version' charts/${{ matrix.chart }}/Chart.yaml)
+          CHART_NAME=$(yq '.name' ${{ env.CHART_PATH }}/Chart.yaml)
+          CHART_VERSION=$(yq '.version' ${{ env.CHART_PATH }}/Chart.yaml)
 
           helm push \
-            ${{ matrix.chart }}-${VERSION}.tgz \
+            ${CHART_NAME}-${CHART_VERSION}.tgz \
             oci://ghcr.io/${{ github.repository_owner }}/charts
