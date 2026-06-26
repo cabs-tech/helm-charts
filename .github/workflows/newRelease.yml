@@ -25,13 +25,6 @@ jobs:
       - name: Setup Helm
         uses: azure/setup-helm@v4
 
-      - name: Login to GHCR
-        run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | \
-          helm registry login ghcr.io \
-            --username ${{ github.actor }} \
-            --password-stdin
-
       - name: Package chart
         run: |
           helm package ${{ env.CHART_PATH }}
